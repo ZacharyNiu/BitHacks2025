@@ -1,11 +1,10 @@
-// ✅ ESP-NOW VERSION: Send analog value from one ESP32-S3 to another
 #include <esp_now.h>
 #include <WiFi.h>
 
 #define ANALOG_PIN 4
 
 // Replace with the MAC address of the RECEIVER ESP32
-uint8_t receiverMAC[] = {0x8C, 0xBF, 0xEA, 0x03, 0xB2, 0x00};  // Example MAC
+uint8_t receiverMAC[] = {0x8C, 0xBF, 0xEA, 0x03, 0xBB, 0x74};  // 8C:BF:EA:03:BB:74
 
 esp_now_peer_info_t peerInfo;
 
@@ -37,3 +36,4 @@ void loop() {
   Serial.printf("📤 Sent analog value: %d\n", val);
   delay(200);
 } 
+
