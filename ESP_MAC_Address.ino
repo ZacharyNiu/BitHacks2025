@@ -3,7 +3,7 @@
 void setup() {
   Serial.begin(115200);
   WiFi.mode(WIFI_STA);  // ESP-NOW requires station mode
-  wifi.begin();
+  Wifi.begin();
   delay(100);
   
   Serial.println("ESP32 Receiver MAC Address:");
