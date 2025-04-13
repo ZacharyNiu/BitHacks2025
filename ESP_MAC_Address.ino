@@ -1,4 +1,3 @@
-#include <esp_now.h>
 #include <WiFi.h>
 
 void setup() {
@@ -6,6 +5,7 @@ void setup() {
   WiFi.mode(WIFI_STA);  // ESP-NOW requires station mode
   wifi.begin();
   delay(100);
+  
   Serial.println("ESP32 Receiver MAC Address:");
   Serial.println(WiFi.macAddress());
 }
