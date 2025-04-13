@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta http-equiv="Content-Security-Policy" content="default-src * 'unsafe-inline' 'unsafe-eval' data: gap: ws:">
+    <meta http-equiv="X-Content-Security-Policy" content="default-src * 'unsafe-inline' 'unsafe-eval' data: gap: ws:">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Rover Speed Control</title>
+    <style>
+        body {
+            font-family: -apple-system, sans-serif;
+            text-align: center;
+            padding: 20px;
+            background-color: #f5f5f7;
+        }
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+            background: white;
+            padding: 25px;
+            border-radius: 20px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        #speedometer {
+            width: 200px;
+            height: 200px;
+            margin: 20px auto;
+            position: relative;
+        }
+        #speedValue {
+            font-size: 2.5rem;
+            font-weight: bold;
+            margin-top: 20px;
+        }
+        button {
+            background-color: #007aff;
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 10px;
+            font-size: 1rem;
+            margin: 15px 5px;
+        }
+        .status {
+            margin: 15px 0;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Rover Speed Control</h1>
+        <p>Tilt your device to control speed</p>
+
+        <div class="status" id="connectionStatus">Status: Disconnected</div>
+        <input type="text" id="ipAddress" placeholder="ESP32 IP" value="192.168.1.100">
+        <button id="connectBtn">Connect</button>
+
+        <div id="speedometer">
+            <div id="speedValue">0%</div>
+        </div>
+
+        <div class="status" id="motionStatus">Motion: Waiting for access</div>
+    </div>
+
+    <script>
+        // Connection variables
+        let socket = null;
+        let isConnected = false;
+
+        // Motor parameters
+        const MIN_SPEED = 0;
+        const MAX_SPEED = 100;
+        const SENSITIVITY = 8; // Adjust this to change responsiveness
+
+        // DOM elements
+        const connectBtn = document.getElementById('connectBtn');
+        const statusDiv = document.getElementById('connectionStatus');
+        const motionStatus = document.getElementById('motionStatus');
+        const speedDisplay = document.getElementById('speedValue');
+
+        // Connect/disconnect handler
+        connectBtn.addEventListener('click', function() {
+            console.log("Clicked");
+            if (isConnected) {
+                disconnect();
+            } else {
+                connect();
+            }
+        });
+
+        function connect() {
+            const ip = document.getElementById('ipAddress').value.trim();
+            if (!ip) {
+                statusDiv.textContent = "Status: Enter ESP32 IP";
+                return;
+            }
+
+            socket = new WebSocket(`ws://${ip}:80`);
+
+            socket.onopen = function() {
+                isConnected = true;
+                statusDiv.textContent = "Status: Connected";
+                connectBtn.textContent = "Disconnect";
+                requestMotionAccess();
+            };
+
+            socket.onclose = function() {
+                if (isConnected) {
+                    disconnect();
+                }
+            };
+
+            socket.onerror = function(error) {
+                statusDiv.textContent = `Status: Error - ${error.message}`;
+            };
+        }
+
+        function disconnect() {
+            if (socket) {
+                socket.close();
+            }
+            isConnected = false;
+            statusDiv.textContent = "Status: Disconnected";
+            connectBtn.textContent = "Connect";
+            stopAccelerometer();
+            speedDisplay.textContent = "0%";
+        }
+
+        function requestMotionAccess() {
+            if (typeof DeviceMotionEvent.requestPermission === 'function') {
+                DeviceMotionEvent.requestPermission()
+                    .then(response => {
+                        if (response === 'granted') {
+                            startAccelerometer();
+                            motionStatus.textContent = "Motion: Active";
+                        } else {
+                            motionStatus.textContent = "Motion: Denied";
+                        }
+                    })
+                    .catch(console.error);
+            } else {
+                startAccelerometer();
+                motionStatus.textContent = "Motion: Active";
+            }
+        }
+
+        function startAccelerometer() {
+            window.addEventListener('devicemotion', handleMotion);
+        }
+
+        function stopAccelerometer() {
+            window.removeEventListener('devicemotion', handleMotion);
+        }
+
+        function handleMotion(event) {
+            const accel = event.accelerationIncludingGravity;
+
+            // Calculate magnitude (remove gravity)
+            const magnitude = Math.sqrt(accel.x**2 + accel.y**2 + accel.z**2) - 9.8;
+
+            // Map to motor speed (absolute value so reverse tilt doesn't matter)
+            let speed = Math.abs(magnitude) * SENSITIVITY;
+            speed = Math.min(MAX_SPEED, Math.max(MIN_SPEED, speed));
+
+            // Update display
+            speedDisplay.textContent = `${Math.round(speed)}%`;
+
+            // Send to ESP32 if connected
+            if (isConnected && socket.readyState === WebSocket.OPEN) {
+                socket.send(String(Math.round(speed)));
+            }
+        }
+    </script>
+</body>
+</html>
