@@ -8,6 +8,12 @@ void onReceive(const esp_now_recv_info_t *info, const uint8_t *incomingData, int
 }
 
 void setup() {
+  pinMode(12, OUTPUT);
+  pinMode(11,OUTPUT);
+
+  pinMode(10, OUTPUT);
+  pinMode(9, OUTPUT);
+  
   Serial.begin(115200);
   delay(500);
   Serial.println("🔌 Booting Receiver...");
@@ -28,5 +34,15 @@ void setup() {
 }
 
 void loop() {
-  // Receiver runs on callback — nothing needed here!
+  int sensorValue = receivedVal;
+  delay(50);  // Fast enough to catch spikes
+
+  int motorSpeed = receivedVal/50; //converting sensorValue to motor speed
+
+  //Motors Control
+  analogWrite(12, 0);
+  analogWrite(11, motorSpeed);
+  
+  analogWrite(10, 0);
+  analogWrite(9, motorSpeed);
 }
