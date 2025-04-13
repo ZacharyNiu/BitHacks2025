@@ -9,6 +9,7 @@ void onReceive(const esp_now_recv_info_t *info, const uint8_t *incomingData, int
 
 void setup() {
   Serial.begin(115200);
+  delay(500);
   Serial.println("🔌 Booting Receiver...");
 
   WiFi.mode(WIFI_STA);
